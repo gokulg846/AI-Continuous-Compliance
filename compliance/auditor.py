@@ -32,9 +32,11 @@ class Auditor:
         self,
         policy: GovernancePolicy,
         client_factory: DockerClientFactory | None = None,
+        container_name_prefix: str | None = None,
     ) -> None:
         self._policy = policy
         self._client_factory = client_factory or docker.from_env
+        self._container_name_prefix = container_name_prefix
 
     def run_audit(self) -> AuditReport:
         audit_id = str(uuid.uuid4())
@@ -54,7 +56,21 @@ class Auditor:
                 raise DockerConnectionError("Docker daemon did not respond to ping")
 
             containers = client.containers.list()
-            logger.info("Auditing %d running container(s)", len(containers))
+            if self._container_name_prefix:
+                containers = [
+                    container
+                    for container in containers
+                    if self._container_name(container).startswith(
+                        self._container_name_prefix
+                    )
+                ]
+                logger.info(
+                    "Auditing %d container(s) matching prefix '%s'",
+                    len(containers),
+                    self._container_name_prefix,
+                )
+            else:
+                logger.info("Auditing %d running container(s)", len(containers))
 
             for container in containers:
                 try:
