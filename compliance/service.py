@@ -21,7 +21,6 @@ class ServiceConfig:
     output_path: str
     interval_seconds: int = 300
     append_history: bool = False
-    container_name_prefix: str | None = None
 
 
 class ComplianceService:
@@ -33,10 +32,7 @@ class ComplianceService:
 
     def run_once(self) -> AuditReport:
         policy = PolicyIngestor(self._config.policy_path).load()
-        report = Auditor(
-            policy,
-            container_name_prefix=self._config.container_name_prefix,
-        ).run_audit()
+        report = Auditor(policy).run_audit()
 
         reporter = Reporter(self._config.output_path)
         if self._config.append_history:
