@@ -130,8 +130,6 @@ python3 demo/print_report.py audit_log.json
 
 ## Live Demo
 
-A full end-to-end demo is included for presentations and portfolio use.
-
 ```bash
 chmod +x demo/run_demo.sh
 ./demo/run_demo.sh
