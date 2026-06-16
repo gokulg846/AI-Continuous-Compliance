@@ -36,10 +36,22 @@ step "3/5  Show running demo containers"
 docker ps --filter "name=${PREFIX}-" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
 step "4/5  Run compliance audit against demo containers"
+set +e
 python3 -m compliance.main \
   --policy "$POLICY" \
   --output "$AUDIT_LOG" \
   --container-prefix "$PREFIX"
+AUDIT_EXIT_CODE=$?
+set -e
+
+if [[ "$AUDIT_EXIT_CODE" -eq 0 ]]; then
+  echo "Audit finished with no violations."
+elif [[ "$AUDIT_EXIT_CODE" -eq 1 ]]; then
+  echo "Audit found expected demo violations; continuing to print evidence."
+else
+  echo "Audit failed unexpectedly with exit code $AUDIT_EXIT_CODE" >&2
+  exit "$AUDIT_EXIT_CODE"
+fi
 
 step "5/5  Human-readable audit summary"
 python3 "$ROOT_DIR/demo/print_report.py" "$AUDIT_LOG"

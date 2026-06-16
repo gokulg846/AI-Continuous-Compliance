@@ -69,7 +69,7 @@ The agent follows a three-stage pipeline orchestrated by `ComplianceService`:
 1. **Policy Ingestor** loads and validates `policy.json`. Invalid policy fails fast — before any Docker connection is attempted.
 2. **Auditor** connects to the Docker daemon, lists running containers, and inspects each one:
    - **Labels** — verifies every key in `required_labels` is present and non-empty
-   - **Ports** — checks whether any port in `forbidden_ports` is published to the host
+   - **Ports** — checks whether any forbidden container port or host-published port is exposed
 3. **Reporter** writes the full audit report to `audit_log.json`, including summary counts and per-container violations.
 4. The process exits with code `1` if any container is non-compliant (useful for CI/CD gates).
 
@@ -191,7 +191,7 @@ Policies are defined in `policy.json` at the repository root (or any path passed
 | `policy_version` | `string` | Semantic version of the policy document |
 | `policy_name` | `string` | Human-readable policy identifier |
 | `required_labels` | `string[]` | Docker label keys that must be present and non-empty |
-| `forbidden_ports` | `int[]` | Container ports that must not be published to the host |
+| `forbidden_ports` | `int[]` | Container or host-published ports that must not be exposed |
 
 ### Example
 # Continuous Compliance Agent
@@ -248,7 +248,7 @@ PolicyIngestor ──► GovernancePolicy
 
 **`required_labels`** — Enterprise teams use labels for accountability and blast-radius control. A container missing `owner`, `env`, or `security_tier` is flagged as non-compliant.
 
-**`forbidden_ports`** — Publishing database, cache, or administrative ports to the host increases attack surface. The auditor inspects `NetworkSettings.Ports` and flags any binding on a forbidden port.
+**`forbidden_ports`** — Publishing database, cache, or administrative ports increases attack surface. The auditor inspects `NetworkSettings.Ports` and flags a forbidden port if it appears as either the container port (`6379/tcp`) or the host-published port (`HostPort: 6379`).
 
 ---
 
@@ -422,8 +422,8 @@ Description=Continuous Compliance Agent
 After=docker.service
 
 [Service]
-ExecStart=/usr/bin/python3 -m compliance.main \
-  --daemon --interval 300 --append --output /var/log/compliance/audit_log.json
+WorkingDirectory=/opt/ai-continuous-compliance
+ExecStart=/usr/bin/python3 -m compliance.main --daemon --interval 300 --append --output /var/log/compliance/audit_log.json
 Restart=on-failure
 Environment=DOCKER_HOST=unix:///var/run/docker.sock
 
@@ -433,22 +433,38 @@ WantedBy=multi-user.target
 
 ### Docker sidecar
 
-Mount the Docker socket read-only and run the agent alongside your workloads:
+Build the project into an image, mount the Docker socket read-only, and run the agent alongside your workloads:
+
+```dockerfile
+FROM python:3.12-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY compliance/ compliance/
+COPY policy.json policy.json
+CMD ["python", "-m", "compliance.main", "--daemon", "--interval", "300"]
+```
 
 ```yaml
 services:
   compliance-agent:
-    image: python:3.12-slim
+    build: .
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./policy.json:/etc/compliance/policy.json:ro
       - ./audit_logs:/var/log/compliance
-    command: >
-      sh -c "pip install docker &&
-             python -m compliance.main
-             --daemon --interval 300 --append
-             --policy /etc/compliance/policy.json
-             --output /var/log/compliance/audit_log.json"
+    command:
+      - python
+      - -m
+      - compliance.main
+      - --daemon
+      - --interval
+      - "300"
+      - --append
+      - --policy
+      - /etc/compliance/policy.json
+      - --output
+      - /var/log/compliance/audit_log.json
 ```
 
 ### Enterprise integration paths

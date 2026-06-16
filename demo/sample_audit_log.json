@@ -62,7 +62,7 @@
           "message": "Forbidden port is exposed: 6379",
           "details": {
             "port": 6379,
-            "exposed_ports": [6379]
+            "published_ports": [6379]
           }
         }
       ]
