@@ -135,6 +135,10 @@ chmod +x demo/run_demo.sh
 ./demo/run_demo.sh
 ```
 
+If Docker is not installed or the Docker daemon is not running, the script falls
+back to the committed sample audit report so you can still show the PASS/FAIL
+output format. Install and start Docker to run the true live container audit.
+
 This script:
 
 1. Installs dependencies
