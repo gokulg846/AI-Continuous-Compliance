@@ -54,6 +54,11 @@ chmod +x demo/run_demo.sh
 ./demo/run_demo.sh
 ```
 
+If Docker is not installed or Docker is not running, the script automatically
+falls back to `demo/sample_audit_log.json` and prints the same style of
+PASS/FAIL report. That fallback is useful in cloud IDEs or locked-down
+environments, but the live demo requires Docker.
+
 ### What the demo spins up
 
 | Container | Purpose | Expected result |
