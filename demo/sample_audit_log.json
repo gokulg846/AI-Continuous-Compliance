@@ -1,0 +1,72 @@
+{
+  "audit_id": "sample-audit-for-portfolio",
+  "started_at": "2026-06-16T18:30:00+00:00",
+  "completed_at": "2026-06-16T18:30:01+00:00",
+  "policy": {
+    "name": "enterprise-governance-baseline",
+    "version": "1.0"
+  },
+  "summary": {
+    "containers_audited": 3,
+    "compliant": 1,
+    "non_compliant": 2
+  },
+  "results": [
+    {
+      "timestamp": "2026-06-16T18:30:00+00:00",
+      "container_id": "a1b2c3d4e5f6",
+      "container_name": "cc-demo-compliant-web",
+      "status": "COMPLIANT",
+      "violations": []
+    },
+    {
+      "timestamp": "2026-06-16T18:30:00+00:00",
+      "container_id": "f6e5d4c3b2a1",
+      "container_name": "cc-demo-rogue-api",
+      "status": "NON-COMPLIANT",
+      "violations": [
+        {
+          "rule": "required_labels",
+          "message": "Missing required label: owner",
+          "details": {
+            "label": "owner",
+            "present_labels": []
+          }
+        },
+        {
+          "rule": "required_labels",
+          "message": "Missing required label: env",
+          "details": {
+            "label": "env",
+            "present_labels": []
+          }
+        },
+        {
+          "rule": "required_labels",
+          "message": "Missing required label: security_tier",
+          "details": {
+            "label": "security_tier",
+            "present_labels": []
+          }
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-06-16T18:30:01+00:00",
+      "container_id": "9z8y7x6w5v4u",
+      "container_name": "cc-demo-exposed-db",
+      "status": "NON-COMPLIANT",
+      "violations": [
+        {
+          "rule": "forbidden_ports",
+          "message": "Forbidden port is exposed: 6379",
+          "details": {
+            "port": 6379,
+            "exposed_ports": [6379]
+          }
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

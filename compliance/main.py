@@ -40,6 +40,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Append each audit run to output file as a history array",
     )
     parser.add_argument(
+        "--container-prefix",
+        default=None,
+        help="Only audit containers whose names start with this prefix",
+    )
+    parser.add_argument(
         "--log-level",
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
@@ -68,6 +73,7 @@ def main(argv: list[str] | None = None) -> int:
         output_path=args.output,
         interval_seconds=args.interval,
         append_history=args.append,
+        container_name_prefix=args.container_prefix,
     )
     service = ComplianceService(config)
 

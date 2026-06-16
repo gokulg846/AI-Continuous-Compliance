@@ -45,14 +45,37 @@ PolicyIngestor ──► GovernancePolicy
 pip install -r requirements.txt
 
 # One-shot audit (requires Docker socket access)
-python -m compliance.main --policy policy.json --output audit_log.json
+python3 -m compliance.main --policy policy.json --output audit_log.json
 
 # Continuous background service (audit every 5 minutes)
-python -m compliance.main --daemon --interval 300
+python3 -m compliance.main --daemon --interval 300
 
 # Append each run to a history log
-python -m compliance.main --daemon --append --output audit_log.json
+python3 -m compliance.main --daemon --append --output audit_log.json
 ```
+
+## Live Demo (for resume / portfolio)
+
+Run a full end-to-end demo with one command:
+
+```bash
+chmod +x demo/run_demo.sh
+./demo/run_demo.sh
+```
+
+This starts 3 containers (1 compliant, 2 intentional violations), runs the audit, and prints a PASS/FAIL summary. See [demo/DEMO.md](demo/DEMO.md) for a screen-recording script and resume bullet points.
+
+```bash
+# Audit only demo containers (useful when other containers are running)
+python3 -m compliance.main \
+  --policy policy.json \
+  --output demo/audit_log.json \
+  --container-prefix cc-demo
+
+python3 demo/print_report.py demo/audit_log.json
+```
+
+Example output is committed at `demo/sample_audit_log.json` for portfolio viewers who cannot run Docker locally.
 
 ## Audit Output
 

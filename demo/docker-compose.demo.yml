@@ -1,0 +1,30 @@
+# Demo environment for the Continuous Compliance agent.
+# Starts one compliant container and two intentional violations.
+
+services:
+  compliant-web:
+    image: nginx:alpine
+    container_name: cc-demo-compliant-web
+    labels:
+      owner: platform-team
+      env: production
+      security_tier: high
+    ports:
+      - "18080:80"
+
+  rogue-api:
+    image: nginx:alpine
+    container_name: cc-demo-rogue-api
+    # Missing required governance labels on purpose.
+    ports:
+      - "18081:80"
+
+  exposed-db:
+    image: redis:alpine
+    container_name: cc-demo-exposed-db
+    labels:
+      owner: data-team
+      env: staging
+      security_tier: medium
+    ports:
+      - "6379:6379"
