@@ -77,9 +77,15 @@ class PolicyIngestor:
             raise PolicyError("forbidden_ports must be a list")
 
         for index, port in enumerate(data["forbidden_ports"]):
-            if not isinstance(port, int) or port < 1 or port > 65535:
+            if (
+                isinstance(port, bool)
+                or not isinstance(port, int)
+                or port < 1
+                or port > 65535
+            ):
                 raise PolicyError(
-                    f"forbidden_ports[{index}] must be an integer between 1 and 65535"
+                    f"forbidden_ports[{index}] must be an integer "
+                    "between 1 and 65535"
                 )
 
     def _parse_policy(self, data: dict[str, Any]) -> GovernancePolicy:

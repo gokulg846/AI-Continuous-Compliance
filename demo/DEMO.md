@@ -36,7 +36,7 @@ policy.json  -->  PolicyIngestor  -->  GovernancePolicy
 2. **Auditor** connects to `/var/run/docker.sock` and lists running containers.
 3. For each container it checks:
    - **Labels**: are `owner`, `env`, and `security_tier` present?
-   - **Ports**: is any forbidden port (e.g. 6379) published to the host?
+   - **Ports**: is any forbidden port (e.g. 6379) exposed as a container port or host-published port?
 4. **Reporter** writes `audit_log.json` with timestamp, container ID, status, and violations.
 5. Exit code `1` if any container is non-compliant — useful for CI gates.
 
@@ -73,11 +73,12 @@ docker ps --filter name=cc-demo
 cat policy.json
 
 # Terminal 2 — run the audit
-pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
 python3 -m compliance.main \
   --policy policy.json \
   --output demo/audit_log.json \
   --container-prefix cc-demo
+# Exit code 1 is expected here because the demo intentionally creates violations.
 
 # Terminal 2 — show the results
 python3 demo/print_report.py demo/audit_log.json

@@ -32,9 +32,11 @@ class Auditor:
         self,
         policy: GovernancePolicy,
         client_factory: DockerClientFactory | None = None,
+        container_name_prefix: str | None = None,
     ) -> None:
         self._policy = policy
         self._client_factory = client_factory or docker.from_env
+        self._container_name_prefix = container_name_prefix
 
     def run_audit(self) -> AuditReport:
         audit_id = str(uuid.uuid4())
@@ -54,7 +56,21 @@ class Auditor:
                 raise DockerConnectionError("Docker daemon did not respond to ping")
 
             containers = client.containers.list()
-            logger.info("Auditing %d running container(s)", len(containers))
+            if self._container_name_prefix:
+                containers = [
+                    container
+                    for container in containers
+                    if self._container_name(container).startswith(
+                        self._container_name_prefix
+                    )
+                ]
+                logger.info(
+                    "Auditing %d container(s) matching prefix '%s'",
+                    len(containers),
+                    self._container_name_prefix,
+                )
+            else:
+                logger.info("Auditing %d running container(s)", len(containers))
 
             for container in containers:
                 try:
@@ -89,7 +105,7 @@ class Auditor:
     def _audit_container(self, container: Container) -> ContainerAuditResult:
         container.reload()
         labels = container.labels or {}
-        exposed_ports = self._extract_exposed_ports(container)
+        exposed_ports = self._extract_published_ports(container)
 
         violations: list[Violation] = []
         violations.extend(self._check_required_labels(labels))
@@ -138,20 +154,20 @@ class Auditor:
                     message=f"Forbidden port is exposed: {port}",
                     details={
                         "port": port,
-                        "exposed_ports": sorted(exposed_ports),
+                        "published_ports": sorted(exposed_ports),
                     },
                 )
             )
         return violations
 
-    def _extract_exposed_ports(self, container: Container) -> set[int]:
-        exposed: set[int] = set()
+    def _extract_published_ports(self, container: Container) -> set[int]:
+        published: set[int] = set()
         ports: dict[str, Any] | None = container.attrs.get("NetworkSettings", {}).get(
             "Ports"
         )
 
         if not ports:
-            return exposed
+            return published
 
         for container_port, bindings in ports.items():
             if bindings is None:
@@ -159,9 +175,14 @@ class Auditor:
 
             port_number = self._parse_port_key(container_port)
             if port_number is not None:
-                exposed.add(port_number)
+                published.add(port_number)
 
-        return exposed
+            for binding in bindings:
+                host_port = self._parse_host_port(binding)
+                if host_port is not None:
+                    published.add(host_port)
+
+        return published
 
     @staticmethod
     def _parse_port_key(port_key: str) -> int | None:
@@ -170,6 +191,20 @@ class Auditor:
         try:
             return int(host_port)
         except ValueError:
+            return None
+
+    @staticmethod
+    def _parse_host_port(binding: dict[str, Any]) -> int | None:
+        if not isinstance(binding, dict):
+            return None
+
+        host_port = binding.get("HostPort")
+        if host_port is None:
+            return None
+
+        try:
+            return int(host_port)
+        except (TypeError, ValueError):
             return None
 
     @staticmethod
